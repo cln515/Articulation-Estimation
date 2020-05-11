@@ -73,6 +73,6 @@ Set openpose.lib (/path/to/build_folder/src/openpose/Release/openpose.lib) to Op
 Run "configure" again and "Generate"
 ## Licence
 
-[MIT](https://github.com/cln515/Articulation-Estimation/blob/master/README.md)
+[MIT](https://github.com/cln515/Articulation-Estimation/blob/master/LICENSE)
 
 
