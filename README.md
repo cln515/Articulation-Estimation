@@ -3,14 +3,10 @@ A Hand Motion-guided Articulation and Segmentation Estimation.
 
 Articulation and segmentation estimation in RGB-D image (For Kinect v2) using hand motion.
 
-[Paper](http://arxiv.url)
+[Paper](https://arxiv.org/abs/2005.03691)
 
 ## Description
 This repository offers the object articulation and segmentation estimation using human hand motion detected in RGB-D image sequence. 
-
-## Demo
-
-
 
 ## Requirement
 Tested Environment: Windows 10
@@ -77,7 +73,6 @@ Set openpose.lib (/path/to/build_folder/src/openpose/Release/openpose.lib) to Op
 Run "configure" again and "Generate"
 ## Licence
 
-[MIT](https://github.com/LICENCE)
+[MIT](https://github.com/cln515/Articulation-Estimation/blob/master/README.md)
 
-## Author
 
