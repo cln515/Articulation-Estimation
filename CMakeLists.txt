@@ -13,6 +13,7 @@ src/ArticulatedObject.cpp
 src/others.cpp
 src/simultaneous_sa.cpp
 src/ICPModule.cpp
+src/Sensor.cpp
 )
 
 
