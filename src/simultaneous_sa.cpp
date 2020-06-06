@@ -47,11 +47,9 @@ void SegmentationArticulation::StartCaptureMode()
 {
 	RGBD_Sensor rgbd_sensor;
 
-
-
-
 	int color_width, color_height, depth_width, depth_height;
-
+	rgbd_sensor.getImageSizes(color_width,color_height,
+		depth_width,depth_height);
 
 	cv::namedWindow("Color");
 	cv::namedWindow("Depth");
@@ -78,14 +76,6 @@ void SegmentationArticulation::StartCaptureMode()
 
 		int color_buffer_size = color_width * color_height * 4 * sizeof(unsigned char);
 
-		HRESULT color_result = p_color_reader->AcquireLatestFrame(&p_color_frame);
-		
-		if (SUCCEEDED(color_result)) {
-			color_result = p_color_frame->CopyConvertedFrameDataToArray(color_buffer_size, reinterpret_cast<BYTE*>(color_image.data), ColorImageFormat_Bgra);
-			if (SUCCEEDED(color_result)) {
-
-			}
-		}
 
 		IDepthFrame* p_depth_frame = nullptr;
 

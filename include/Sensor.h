@@ -1,6 +1,7 @@
 #if ENABLE_KINECT_V2
 #include <kinect.h>
 #endif
+#include <opencv2/opencv.hpp>
 #include <windows.h>
 #include <wrl/client.h>
 #include <iostream>
@@ -15,8 +16,16 @@ public:
 	};
 
 	int color_width, color_height, depth_width, depth_height;
+
+	void getColorImage(cv::Mat& outmat);
+
 #if ENABLE_KINECT_V2
 	Microsoft::WRL::ComPtr<IKinectSensor> iKinect;
+	IColorFrameSource* p_color_source;
+	IDepthFrameSource* p_depth_source;
+	IColorFrameReader* p_color_reader;
+	IDepthFrameReader* p_depth_reader;
+	IFrameDescription* p_frame_desc;
 
 #endif
 
