@@ -18,6 +18,7 @@ public:
 	int color_width, color_height, depth_width, depth_height;
 
 	void getColorImage(cv::Mat& outmat);
+	void getDepthImage(cv::Mat& outmat);
 
 #if ENABLE_KINECT_V2
 	Microsoft::WRL::ComPtr<IKinectSensor> iKinect;

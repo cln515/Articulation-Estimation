@@ -35,12 +35,25 @@ void RGBD_Sensor::openInitDevice() {
 };
 
 void  RGBD_Sensor::getColorImage(cv::Mat& outmat){
+#if ENABLE_KINECT_V2
 	IColorFrame* p_color_frame = nullptr;
 	HRESULT color_result = p_color_reader->AcquireLatestFrame(&p_color_frame);
 	int color_buffer_size = color_width * color_height * 4 * sizeof(unsigned char);
 	if (SUCCEEDED(color_result)) {
 		color_result = p_color_frame->CopyConvertedFrameDataToArray(color_buffer_size, reinterpret_cast<BYTE*>(outmat.data), ColorImageFormat_Bgra);
 	}
+#endif
+}
 
-
+void RGBD_Sensor::getDepthImage(cv::Mat& outmat) {
+#if ENABLE_KINECT_V2
+	IDepthFrame* p_depth_frame = nullptr;
+	HRESULT depth_result = p_depth_reader->AcquireLatestFrame(&p_depth_frame);
+	int depth_buffer_size = depth_width * depth_height;
+	unsigned short *depth_buffer;
+	depth_buffer = new unsigned short[depth_buffer_size];
+	if (SUCCEEDED(depth_result)) {
+		p_depth_frame->CopyFrameDataToArray(depth_buffer_size, depth_buffer);
+	}
+#endif
 }
