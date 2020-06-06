@@ -4,9 +4,15 @@
 
 
 
-public class RGBD_Sensor {
+class RGBD_Sensor {
+public:
+	void openInitDevice();
 
 
+#if ENABLE_KINECT_V2
+	ComPtr<IKinectSensor> iKinect;
+
+#endif
 
 
 };
