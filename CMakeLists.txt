@@ -24,18 +24,40 @@ find_package(ceres REQUIRED)
 include_directories(${CERES_INCLUDE_DIRS})
 target_link_libraries(${PROJECT_NAME} ${CERES_LIBRARIES})
 
-# Find Kinect SDK v2
-find_package( KinectSDK2 REQUIRED )
+# Find K4A
 
-# Settings Kinect SDK v2
-if(KinectSDK2_FOUND)
-  option(USE_KINECT_V2 "Use Kinect V2" ON)
-  include_directories( ${KinectSDK2_INCLUDE_DIRS} )
-  link_directories( ${KinectSDK2_LIBRARY_DIRS} )
-  target_link_libraries(${PROJECT_NAME} ${KinectSDK2_LIBRARIES} )
-  add_custom_command( TARGET ${PROJECT_NAME} POST_BUILD ${KinectSDK2_COMMANDS} )
+
+find_package(K4A)
+if(K4A_FOUND)
+  option(USE_AZURE_KINECT "Use Azure Kinect" ON)
+  target_link_libraries(${PROJECT_NAME} k4a::k4a)
+else()
+  option(USE_AZURE_KINECT "Use Azure Kinect" OFF)
 endif()
 
+if(USE_AZURE_KINECT)
+  add_definitions(-DENABLE_AZURE_KINECT)
+endif()
+
+if(USE_KINECT_V2)
+	# Find Kinect SDK v2
+	find_package(KinectSDK2)
+
+	# Settings Kinect SDK v2
+	if(KinectSDK2_FOUND)
+	option(USE_KINECT_V2 "Use Kinect V2" ON)
+	include_directories( ${KinectSDK2_INCLUDE_DIRS} )
+	link_directories( ${KinectSDK2_LIBRARY_DIRS} )
+	target_link_libraries(${PROJECT_NAME} ${KinectSDK2_LIBRARIES} )
+	add_custom_command( TARGET ${PROJECT_NAME} POST_BUILD ${KinectSDK2_COMMANDS} )
+	else()
+	option(USE_KINECT_V2 "Use Kinect V2" OFF)
+	endif()
+
+	if(USE_KINECT_V2)
+	add_definitions(-DENABLE_KINECT_V2)
+	endif()
+endif()
 
 set(OpenPose_DIR "" CACHE PATH "")
 set(OpenPose_LIB "" CACHE FILEPATH "")
