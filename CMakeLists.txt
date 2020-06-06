@@ -26,7 +26,8 @@ include_directories(${CERES_INCLUDE_DIRS})
 target_link_libraries(${PROJECT_NAME} ${CERES_LIBRARIES})
 
 # Find K4A
-
+option(USE_AZURE_KINECT "Use Azure Kinect" ON)
+if(USE_AZURE_KINECT)
 
 find_package(K4A)
 if(K4A_FOUND)
@@ -40,6 +41,7 @@ if(USE_AZURE_KINECT)
   add_definitions(-DENABLE_AZURE_KINECT)
 endif()
 
+option(USE_KINECT_V2 "Use Kinect V2" OFF)
 if(USE_KINECT_V2)
 	# Find Kinect SDK v2
 	find_package(KinectSDK2)
@@ -58,6 +60,7 @@ if(USE_KINECT_V2)
 	if(USE_KINECT_V2)
 	add_definitions(-DENABLE_KINECT_V2)
 	endif()
+endif()
 endif()
 
 set(OpenPose_DIR "" CACHE PATH "")
