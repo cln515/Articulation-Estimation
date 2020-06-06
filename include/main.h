@@ -31,11 +31,8 @@
 #include <boost/filesystem.hpp>
 
 #include <iostream>
-#include <kinect.h>
 
-#if ENABLE_KINECT_V1
-	#include <NuiApi.h>
-#endif
+#include <Sensor.h>
 
 #include <windows.h>
 #include <opencv2/opencv.hpp>
