@@ -23,7 +23,7 @@ void RGBD_Sensor::openInitDevice() {
 	p_frame_desc->get_Width(&depth_width);
 	p_frame_desc->get_Height(&depth_height);
 
-
+	iKinect->get_CoordinateMapper(&coordinateMapper);
 
 	std::cout << "color_width : " << color_width << std::endl;
 	std::cout << "color_height : " << color_height << std::endl;
@@ -55,5 +55,19 @@ void RGBD_Sensor::getDepthImage(cv::Mat& outmat) {
 	if (SUCCEEDED(depth_result)) {
 		p_depth_frame->CopyFrameDataToArray(depth_buffer_size, depth_buffer);
 	}
+#endif
+}
+
+//
+bool RGBD_Sensor::Depth2ColorPixel(Eigen::Vector2d pix,uint pixValue,Eigen::Vector2d& ret){
+#if ENABLE_KINECT_V2
+//	for (int y = 0; y < depth_buffer_size; y++) {
+	DepthSpacePoint dsp; dsp.X = pix(0); dsp.Y = pix(1);
+	ColorSpacePoint csp;
+	HRESULT hr = coordinateMapper->MapDepthPointToColorSpace(dsp, pixValue, &csp);
+	ret<<csp.X,csp.Y;
+	return true;
+//	}
+
 #endif
 }

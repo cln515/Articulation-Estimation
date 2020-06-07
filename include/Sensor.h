@@ -5,6 +5,7 @@
 #include <windows.h>
 #include <wrl/client.h>
 #include <iostream>
+#include <Eigen/Core>
 
 class RGBD_Sensor {
 public:
@@ -19,6 +20,7 @@ public:
 
 	void getColorImage(cv::Mat& outmat);
 	void getDepthImage(cv::Mat& outmat);
+	bool Depth2ColorPixel(Eigen::Vector2d pix,uint pixValue,Eigen::Vector2d& ret);
 
 #if ENABLE_KINECT_V2
 	Microsoft::WRL::ComPtr<IKinectSensor> iKinect;
@@ -27,6 +29,7 @@ public:
 	IColorFrameReader* p_color_reader;
 	IDepthFrameReader* p_depth_reader;
 	IFrameDescription* p_frame_desc;
+	ICoordinateMapper* coordinateMapper;
 
 #endif
 
