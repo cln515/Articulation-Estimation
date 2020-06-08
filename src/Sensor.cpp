@@ -30,6 +30,8 @@ void RGBD_Sensor::openInitDevice() {
 	std::cout << "depth_width : " << depth_width << std::endl;
 	std::cout << "depth_height : " << depth_height << std::endl;
 
+
+	csps = new CameraSpacePoint[color_width*color_height];
 #endif
 
 };
@@ -71,3 +73,23 @@ bool RGBD_Sensor::Depth2ColorPixel(Eigen::Vector2d pix,uint pixValue,Eigen::Vect
 
 #endif
 }
+
+//bool RGBD_Sensor::ColorFrame2Camera(Eigen::Vector2d pix, uint pixValue, Eigen::Vector2d& ret) {
+//#if ENABLE_KINECT_V2
+//	//	for (int y = 0; y < depth_buffer_size; y++) {
+//	DepthSpacePoint dsp; dsp.X = pix(0); dsp.Y = pix(1);
+//	ColorSpacePoint csp;
+//	HRESULT hr = coordinateMapper->MapDepthPointToColorSpace(dsp, pixValue, &csp);
+//	ret << csp.X, csp.Y;
+//	return true;
+//	//	}
+//
+//#endif
+//}
+
+#if ENABLE_KINECT_V2
+bool RGBD_Sensor::ColorFrame2Camera(Eigen::Vector2d pix, Eigen::Vector3d& ret){
+	CameraSpacePoint csp = csps[(int)pix(0) + ((int)pix(1))*color_width];
+	ret << csp.X, csp.Y, csp.Z;
+}
+#endif
