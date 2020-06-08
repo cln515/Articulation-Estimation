@@ -48,17 +48,11 @@ void SegmentationArticulation::StartCaptureMode()
 	RGBD_Sensor rgbd_sensor;
 
 	int color_width, color_height, depth_width, depth_height;
-	rgbd_sensor.getImageSizes(color_width,color_height,
-		depth_width,depth_height);
+	rgbd_sensor.openInitDevice();
+	rgbd_sensor.getImageSizes(color_width, color_height,
+		depth_width, depth_height);
 
-	cv::namedWindow("Color");
-	cv::namedWindow("Depth");
 	int frame_counter = 0;
-
-
-	ICoordinateMapper* coordinateMapper;
-	iKinect->get_CoordinateMapper(&coordinateMapper);
-
 
 	int depth_buffer_size = depth_width * depth_height;
 	bool backgroundSaved = false;
@@ -67,36 +61,34 @@ void SegmentationArticulation::StartCaptureMode()
 
 	bool capturing = false;
 
-	while (1) {
-		IColorFrame* p_color_frame = nullptr;
 
+
+	while (1) {
+		cv::Mat depthMap = cv::Mat(depth_height, depth_width, CV_16UC1);
 		cv::Mat color_image(color_height, color_width, CV_8UC4);
 		cv::Mat color_image3ch(color_height, color_width, CV_8UC3);
 		cv::Mat depth_image = cv::Mat::zeros(depth_height, depth_width, CV_8UC3);
-
+		//IColorFrame* p_color_frame = nullptr;
 		int color_buffer_size = color_width * color_height * 4 * sizeof(unsigned char);
 
-
-		IDepthFrame* p_depth_frame = nullptr;
-
-
+		bool bDepth = rgbd_sensor.getDepthImage(depthMap);
+		bool bColor = rgbd_sensor.getColorImage(color_image);
 		unsigned short *depth_buffer;
-		depth_buffer = new unsigned short[depth_buffer_size];
-
-		HRESULT depth_result = p_depth_reader->AcquireLatestFrame(&p_depth_frame);
-
-		if (SUCCEEDED(depth_result)) {
-			p_depth_frame->CopyFrameDataToArray(depth_buffer_size, depth_buffer);
-
+		depth_buffer = (unsigned short*)depthMap.data;
+		//HRESULT depth_result = p_depth_reader->AcquireLatestFrame(&p_depth_frame);
+		if(bDepth&&bColor){			
+			//p_depth_frame->CopyFrameDataToArray(depth_buffer_size, depth_buffer);
 			// Color mapping
-			for (int y = 0; y < depth_buffer_size; y++) {
+			Eigen::Vector2d retpix;
 
-				DepthSpacePoint dsp; dsp.X = y % depth_width; dsp.Y = y / depth_width;
-				ColorSpacePoint csp;
-				HRESULT hr = coordinateMapper->MapDepthPointToColorSpace(dsp, depth_buffer[y], &csp);
-				if (hr != S_OK || depth_buffer[y] == 0) continue;
-				int cidx = (int)csp.X + (int)csp.Y*color_width;
-				if (csp.X >= 0 && csp.X < color_width && csp.Y >= 0 && csp.Y < color_height) {
+			for (int y = 0; y < depth_buffer_size; y++) {
+				retpix<<-1,-1;
+				Eigen::Vector2d pix; pix << y % depth_width, y / depth_width;
+				bool result = rgbd_sensor.Depth2ColorPixel(pix, depth_buffer[y],retpix);
+				//HRESULT hr = coordinateMapper->MapDepthPointToColorSpace(dsp, depth_buffer[y], &csp);
+				if (!result || depth_buffer[y] == 0) continue;
+				int cidx = (int)retpix(0) + (int)retpix(1)*color_width;
+				if (retpix(0) >= 0 && retpix(0) < color_width && retpix(1) >= 0 && retpix(1) < color_height) {
 					depth_image.data[y * 3] = color_image.data[cidx * 4];
 					depth_image.data[y * 3 + 1] = color_image.data[cidx * 4 + 1];
 					depth_image.data[y * 3 + 2] = color_image.data[cidx * 4 + 2];
@@ -133,7 +125,7 @@ void SegmentationArticulation::StartCaptureMode()
 			cout << filename << " and "<< filename2 << " is saved" << endl;
 		}
 
-		if (SUCCEEDED(color_result)) {
+		if (bColor) {
 			cv::flip(color_image, color_image, 1);
 			if (capturing) {
 				cv::cvtColor(color_image,color_image3ch,cv::COLOR_BGRA2BGR);
@@ -148,21 +140,12 @@ void SegmentationArticulation::StartCaptureMode()
 			}
 			resize(color_image, color_image, cv::Size(), 0.5, 0.5);
 			cv::imshow("Color", color_image);
-			if (SUCCEEDED(depth_result)) {
+			if (bDepth) {
 				cv::imshow("Depth", depth_image);
 			}
 		}
 
-		if (p_depth_frame != nullptr) {
-			p_depth_frame->Release();
-		}
-
-		if (p_color_frame != nullptr) {
-			p_color_frame->Release();
-		}
-
 	}
-
 }
 
 

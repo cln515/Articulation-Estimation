@@ -18,11 +18,10 @@ public:
 
 	int color_width, color_height, depth_width, depth_height;
 
-	void getColorImage(cv::Mat& outmat);
-	void getDepthImage(cv::Mat& outmat);
+	bool getColorImage(cv::Mat& outmat);
+	bool getDepthImage(cv::Mat& outmat);
 	bool Depth2ColorPixel(Eigen::Vector2d pix,uint pixValue,Eigen::Vector2d& ret);	
-	bool ColorFrame2Camera(Eigen::Vector2d pix, Eigen::Vector3d& ret);
-
+	void ColorFrame2Camera(Eigen::Vector2d pix, Eigen::Vector3d& ret);
 #if ENABLE_KINECT_V2
 	Microsoft::WRL::ComPtr<IKinectSensor> iKinect;
 	IColorFrameSource* p_color_source;
@@ -35,6 +34,7 @@ public:
 	void SetColorFrame2Camera(unsigned short* depth_buffer){
 		coordinateMapper->MapColorFrameToCameraSpace(depth_width*depth_height, depth_buffer, color_width*color_height, csps);
 	}
+
 #endif
 
 
