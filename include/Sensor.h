@@ -39,7 +39,10 @@ public:
 	}
 #elif ENABLE_AZURE_KINECT
 	k4a::device device;
-
+	k4a::capture cap;
+	void capture(){
+		device.get_capture(&cap, std::chrono::milliseconds(0));
+	}
 
 #endif
 

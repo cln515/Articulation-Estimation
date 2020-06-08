@@ -52,6 +52,28 @@ void RGBD_Sensor::openInitDevice() {
 	config.synchronized_images_only = true;
 	device.start_cameras(&config);
 
+	while (1)
+	{
+		if (device.get_capture(&cap, std::chrono::milliseconds(0)))
+		{
+			{
+				k4a::image depthImage = cap.get_depth_image();
+				k4a::image colorImage = cap.get_color_image();
+				if (depthImage && colorImage) {
+					depth_width= depthImage.get_width_pixels();
+					depth_height = depthImage.get_height_pixels(); 
+					color_width = colorImage.get_width_pixels();
+					color_height = colorImage.get_height_pixels();
+
+					std::cout << "color_width : " << color_width << std::endl;
+					std::cout << "color_height : " << color_height << std::endl;
+					std::cout << "depth_width : " << depth_width << std::endl;
+					std::cout << "depth_height : " << depth_height << std::endl;
+					break;
+				}	
+			}
+		}
+	}
 #endif
 
 
@@ -78,6 +100,17 @@ bool  RGBD_Sensor::getColorImage(cv::Mat& outmat){
 		}
 	}
 	return false;
+#elif ENABLE_AZURE_KINECT
+	{
+		k4a::image colorImage = cap.get_color_image();
+		if (colorImage) {
+			memcpy(outmat.data, colorImage.get_buffer(), color_width * color_height * 4 * sizeof(unsigned char));
+			return true;
+		}else {
+			return false;
+		}
+	}
+
 #endif
 
 }
@@ -99,6 +132,18 @@ bool RGBD_Sensor::getDepthImage(cv::Mat& outmat) {
 		p_depth_frame->Release();
 	}
 	return false;
+#elif ENABLE_AZURE_KINECT
+	{
+		k4a::image depthImage = cap.get_depth_image();
+		if (depthImage) {
+			memcpy(outmat.data, depthImage.get_buffer(), depth_width * depth_height * sizeof(unsigned short));
+			return true;
+		}
+		else {
+			return false;
+		}
+	}
+
 #endif
 }
 
