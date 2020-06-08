@@ -36,7 +36,25 @@ void RGBD_Sensor::openInitDevice() {
 
 
 	csps = new CameraSpacePoint[color_width*color_height];
+#elif ENABLE_AZURE_KINECT
+	const uint32_t deviceCount = k4a::device::get_installed_count();
+	if (deviceCount == 0)
+	{
+		std::cout << "No azure kinect devices detected!" << std::endl;
+		std::exit(-1);
+	}
+
+	k4a_device_configuration_t config = K4A_DEVICE_CONFIG_INIT_DISABLE_ALL;
+	config.camera_fps = K4A_FRAMES_PER_SECOND_30;
+	config.depth_mode = K4A_DEPTH_MODE_NFOV_UNBINNED;
+	config.color_format = K4A_IMAGE_FORMAT_COLOR_BGRA32;
+	config.color_resolution = K4A_COLOR_RESOLUTION_720P;
+	config.synchronized_images_only = true;
+	device.start_cameras(&config);
+
 #endif
+
+
 
 };
 
@@ -61,6 +79,7 @@ bool  RGBD_Sensor::getColorImage(cv::Mat& outmat){
 	}
 	return false;
 #endif
+
 }
 
 bool RGBD_Sensor::getDepthImage(cv::Mat& outmat) {

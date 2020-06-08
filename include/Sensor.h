@@ -1,5 +1,7 @@
 #if ENABLE_KINECT_V2
 #include <kinect.h>
+#elif ENABLE_AZURE_KINECT
+#include <k4a/k4a.hpp>
 #endif
 #include <opencv2/opencv.hpp>
 #include <windows.h>
@@ -35,6 +37,9 @@ public:
 	void SetColorFrame2Camera(unsigned short* depth_buffer){
 		coordinateMapper->MapColorFrameToCameraSpace(depth_width*depth_height, depth_buffer, color_width*color_height, csps);
 	}
+#elif ENABLE_AZURE_KINECT
+	k4a::device device;
+
 
 #endif
 
