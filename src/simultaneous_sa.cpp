@@ -70,7 +70,9 @@ void SegmentationArticulation::StartCaptureMode()
 		cv::Mat depth_image = cv::Mat::zeros(depth_height, depth_width, CV_8UC3);
 		//IColorFrame* p_color_frame = nullptr;
 		int color_buffer_size = color_width * color_height * 4 * sizeof(unsigned char);
-
+#if ENABLE_AZURE_KINECT
+		rgbd_sensor.capture();
+#endif
 		bool bDepth = rgbd_sensor.getDepthImage(depthMap);
 		bool bColor = rgbd_sensor.getColorImage(color_image);
 		unsigned short *depth_buffer;
@@ -383,11 +385,13 @@ void SegmentationArticulation::PostProcessing() {
 		opWrapper->emplaceAndPop(datumsPtr);
 		
 
-		CameraSpacePoint* csps = new CameraSpacePoint[colorWidth*colorHeight];
+//		CameraSpacePoint* csps = new CameraSpacePoint[colorWidth*colorHeight];
 		
 
 //HRESULT hr = coordinateMapper->MapColorFrameToCameraSpace(depth_width*depthHeight, depth_buffer, colorWidth*colorHeight, csps);
+#if ENABLE_KINECT_V2
 		rgbd_sensor.SetColorFrame2Camera(depth_buffer);
+#endif
 		Eigen::Vector3d handP; handP << 0, 0, -1;
 		std::vector<Eigen::Vector3d> handPoints = std::vector<Eigen::Vector3d>(21, Eigen::Vector3d::Zero()), handPoints_candidate = std::vector<Eigen::Vector3d>(21, Eigen::Vector3d::Zero());
 		std::vector<double> handScores = std::vector<double>(21, 0), handScores_candidate = std::vector<double>(21, 0);
@@ -432,10 +436,9 @@ void SegmentationArticulation::PostProcessing() {
 					hgx /= validcnt;
 					hgy /= validcnt;
 					hgz /= validcnt;
-					CameraSpacePoint camsp; camsp.X = hgx; camsp.Y = hgy; camsp.Z = hgz;
 					if (score > maxscore) {
 						maxscore = score;
-						handP << camsp.X , camsp.Y , camsp.Z;
+						handP << hgx , hgy , hgz;
 						handPoints = std::vector<Eigen::Vector3d>(handPoints_candidate);
 						handScores = std::vector<double>(handScores_candidate);
 
@@ -486,7 +489,7 @@ void SegmentationArticulation::PostProcessing() {
 		ss4 << outputFolder << "\\diff_" << i << ".ply";
 		plywriter.write<pcl::PointXYZ>(ss4.str(), *depth_pc, true);
 
-		delete csps;
+		//delete csps;
 
 		// Color mapping for paper
 		cv::Mat depth_image = cv::Mat::zeros(depth_height, depth_width, CV_8UC3);

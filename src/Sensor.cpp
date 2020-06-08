@@ -43,7 +43,7 @@ void RGBD_Sensor::openInitDevice() {
 		std::cout << "No azure kinect devices detected!" << std::endl;
 		std::exit(-1);
 	}
-
+	device = k4a::device::open(K4A_DEVICE_DEFAULT);
 	k4a_device_configuration_t config = K4A_DEVICE_CONFIG_INIT_DISABLE_ALL;
 	config.camera_fps = K4A_FRAMES_PER_SECOND_30;
 	config.depth_mode = K4A_DEPTH_MODE_NFOV_UNBINNED;
@@ -51,6 +51,35 @@ void RGBD_Sensor::openInitDevice() {
 	config.color_resolution = K4A_COLOR_RESOLUTION_720P;
 	config.synchronized_images_only = true;
 	device.start_cameras(&config);
+	calib = device.get_calibration(config.depth_mode, config.color_resolution);
+
+	//float* rotcam= calib.color_camera_calibration.extrinsics.rotation;
+	//float* transcam = calib.color_camera_calibration.extrinsics.translation;
+	//Eigen::Matrix3d colorCam_rot;
+	//colorCam_rot << rotcam[0], rotcam[1], rotcam[2],
+	//	rotcam[3], rotcam[4], rotcam[5],
+	//	rotcam[6], rotcam[7], rotcam[8];
+	//Eigen::Vector3d colorCam_trans;
+	//colorCam_trans<< transcam[0],transcam[1],transcam[2];
+	//std::cout<<colorCam_rot<<std::endl;
+	//std::cout << colorCam_trans << std::endl;
+	//std::cout << calib.color_camera_calibration.intrinsics.parameter_count<<std::endl;
+	//for (int i = 0; i < 15; i++)std::cout << calib.color_camera_calibration.intrinsics.parameters.v[i] << std::endl;
+	//
+	//float* rotdep = calib.depth_camera_calibration.extrinsics.rotation;
+	//float* transdep = calib.depth_camera_calibration.extrinsics.translation;
+	//float* intrdep = calib.depth_camera_calibration.intrinsics.parameters.v;
+	//Eigen::Matrix3d depthCam_rot;
+	//depthCam_rot << rotdep[0], rotdep[1], rotdep[2],
+	//	rotdep[3], rotdep[4], rotdep[5],
+	//	rotdep[6], rotdep[7], rotdep[8];
+	//Eigen::Vector3d depthCam_trans;
+	//depthCam_trans << transdep[0], transdep[1], transdep[2];
+	//std::cout << depthCam_rot << std::endl;
+	//std::cout << depthCam_trans << std::endl;
+	//std::cout << calib.depth_camera_calibration.intrinsics.parameter_count << std::endl;
+	//for(int i=0;i<15;i++)std::cout<<intrdep[i]<<std::endl;
+
 
 	while (1)
 	{
@@ -161,7 +190,14 @@ bool RGBD_Sensor::Depth2ColorPixel(Eigen::Vector2d pix,uint pixValue,Eigen::Vect
 		return false;
 	}
 //	}
-
+#elif ENABLE_AZURE_KINECT
+	k4a_float2_t p,targ;
+	p.v[0] = pix(0);
+	p.v[1] = pix(1);
+	bool result = calib.convert_2d_to_2d(p ,pixValue,K4A_CALIBRATION_TYPE_DEPTH,
+		K4A_CALIBRATION_TYPE_COLOR, &targ);
+	ret << targ.v[0],targ.v[1];
+	return result;
 #endif
 }
 
@@ -179,6 +215,8 @@ bool RGBD_Sensor::Depth2CameraSpace(Eigen::Vector2d pix, uint pixValue, Eigen::V
 	else {
 		return false;
 	}
+#elif ENABLE_AZURE_KINECT
+	return false;
 #endif
 }
 
@@ -196,10 +234,12 @@ bool RGBD_Sensor::Depth2CameraSpace(Eigen::Vector2d pix, uint pixValue, Eigen::V
 //#endif
 //}
 
-#if ENABLE_KINECT_V2
+
 void RGBD_Sensor::ColorFrame2Camera(Eigen::Vector2d pix, Eigen::Vector3d& ret){
+#if ENABLE_KINECT_V2
 	CameraSpacePoint csp = csps[(int)pix(0) + ((int)pix(1))*color_width];
 	ret << csp.X, csp.Y, csp.Z;
-}
 #endif
+}
+
 
