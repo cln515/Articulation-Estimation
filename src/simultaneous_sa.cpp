@@ -201,47 +201,22 @@ void SegmentationArticulation::PostProcessing() {
 	viewer->setCameraPosition(-3.68332, 2.94092, 5.71266, 0.289847, 0.921947, -0.256907, 0);
 	viewer->setSize(1280, 1024);  // Visualiser window size
 
-	ComPtr<IKinectSensor> iKinect;
-
-	HRESULT result = GetDefaultKinectSensor(&iKinect);
-	if (FAILED(result) || !iKinect) {
-		return;
-	}
-	result = iKinect->Open();
-	if (FAILED(result)) {
-		return;
-	}
-
-	IColorFrameSource* p_color_source;
-	iKinect->get_ColorFrameSource(&p_color_source);
-
-	IDepthFrameSource* p_depth_source;
-	iKinect->get_DepthFrameSource(&p_depth_source);
-
-	IColorFrameReader* p_color_reader;
-	p_color_source->OpenReader(&p_color_reader);
-
-	IDepthFrameReader* p_depth_reader;
-	p_depth_source->OpenReader(&p_depth_reader);
+	RGBD_Sensor rgbd_sensor;
 
 	int color_width, color_height, depth_width, depth_height;
-	IFrameDescription* p_frame_desc;
-	p_color_source->get_FrameDescription(&p_frame_desc);
-	p_frame_desc->get_Width(&color_width);
-	p_frame_desc->get_Height(&color_height);
-	p_depth_source->get_FrameDescription(&p_frame_desc);
-	p_frame_desc->get_Width(&depth_width);
-	p_frame_desc->get_Height(&depth_height);
+	rgbd_sensor.openInitDevice();
+	rgbd_sensor.getImageSizes(color_width, color_height,
+		depth_width, depth_height);
 
-	cout << "color_width : " << color_width << endl;
-	cout << "color_height : " << color_height << endl;
-	cout << "depth_width : " << depth_width << endl;
-	cout << "depth_height : " << depth_height << endl;
+	int depth_buffer_size = depth_width * depth_height;
+	bool backgroundSaved = false;
+	unsigned short *bg_depth_buffer;
+	bg_depth_buffer = new unsigned short[depth_buffer_size];
+
+	bool capturing = false;
 
 	int frame_counter = 0;
 
-	ICoordinateMapper* coordinateMapper;
-	iKinect->get_CoordinateMapper(&coordinateMapper);
 	unsigned short* depth_buffer = (unsigned short*)malloc(sizeof(unsigned short)*depth_height*depth_width);
 	unsigned short thresh = 20;
 	//load depth data
@@ -259,44 +234,42 @@ void SegmentationArticulation::PostProcessing() {
 	depth_pc_bgcolor->resize(depth_width*depth_height);	
 
 	int pointCount=0;
-	ColorSpacePoint colsp;
 	for (int y = 0; y < depth_width*depth_height; y++) {
-		DepthSpacePoint dsp; dsp.X = y % depth_width; dsp.Y = y / depth_width;
-		CameraSpacePoint csp;
+		
 		unsigned short depth_value = depth_bgbuffer[y];
 		if(depth_value == 0) depth_value = 1000;//dummy depth	
-			
-		HRESULT hr = coordinateMapper->MapDepthPointToCameraSpace(dsp, depth_value, &csp);
+		Eigen::Vector2d pix,colpt;
+		Eigen::Vector3d campt;
+		pix<< y % depth_width, y / depth_width;
+		bool result = rgbd_sensor.Depth2CameraSpace(pix,depth_value,campt);;
 
-		(*depth_pc_bg)(dsp.X, dsp.Y).x = csp.X;
-		(*depth_pc_bg)(dsp.X, dsp.Y).y = csp.Y;
-		(*depth_pc_bg)(dsp.X, dsp.Y).z = csp.Z;
+		(*depth_pc_bg)(pix(0), pix(1)).x = campt(0);
+		(*depth_pc_bg)(pix(0), pix(1)).y = campt(1);
+		(*depth_pc_bg)(pix(0), pix(1)).z = campt(2);
 		std::cout<<"p\r";// For compiler error
-		if (!(SUCCEEDED(hr)&& !isnan(csp.X) && !isnan(csp.Y) && !isnan(csp.Z))) {
-			(*depth_pc_bg)(dsp.X, dsp.Y).x = 0;
-			(*depth_pc_bg)(dsp.X, dsp.Y).y = 0;
-			(*depth_pc_bg)(dsp.X, dsp.Y).z = 0;
+		if (!(result && !isnan(campt(0)) && !isnan(campt(1)) && !isnan(campt(2)))) {
+			(*depth_pc_bg)(pix(0), pix(1)).x = 0;
+			(*depth_pc_bg)(pix(0), pix(1)).y = 0;
+			(*depth_pc_bg)(pix(0), pix(1)).z = 0;
 		}else{
-			HRESULT hr = coordinateMapper->MapDepthPointToColorSpace(dsp, depth_value, &colsp);
-			if (hr != S_OK || depth_bgbuffer[y] == 0) continue;
-			int cidx = (int)(color_width - colsp.X - 1) + (int)colsp.Y*color_width;
-			if (colsp.X >= 0 && colsp.X < color_width && colsp.Y >= 0 && colsp.Y < color_height) {
+			result = rgbd_sensor.Depth2ColorPixel(pix,depth_value,colpt);
+			if (!result || depth_bgbuffer[y] == 0) continue;
+			int cidx = (int)(color_width - colpt(0) - 1) + (int)colpt(1)*color_width;
+			if (colpt(0) >= 0 && colpt(0) < color_width && colpt(1) >= 0 && colpt(1) < color_height) {
 				
 				pcl::PointXYZRGB pt = pcl::PointXYZRGB();
-				pt.x = csp.X;
-				pt.y = csp.Y;
-				pt.z = csp.Z;
+				pt.x = campt(0);
+				pt.y = campt(1);
+				pt.z = campt(2);
 				pt.r = colorbg.data[cidx * 3 + 2];
 				pt.g = colorbg.data[cidx * 3 + 1];
 				pt.b = colorbg.data[cidx * 3];
 
-				(*depth_pc_bgcolor)(dsp.X, dsp.Y)=pt;
+				(*depth_pc_bgcolor)(pix(0), pix(1))=pt;
 				pointCount++;
 			}
 		}
 	}
-	std::cout <<  colsp.X << "," << colsp.Y << std::endl;
-	std::cout<<"colored points: "<<pointCount<<std::endl;
 	
 
 	pcl::PointCloud<pcl::Normal>::Ptr normals(new pcl::PointCloud<pcl::Normal>);
@@ -340,13 +313,16 @@ void SegmentationArticulation::PostProcessing() {
 		ifs.close();
 
 		for (int y = 0; y < depth_width*depth_height; y++) {
-			DepthSpacePoint dsp; dsp.X = y % depth_width; dsp.Y = y / depth_width;
+			/*DepthSpacePoint dsp; dsp.X = y % depth_width; dsp.Y = y / depth_width;
 			ColorSpacePoint csp;
-			HRESULT hr = coordinateMapper->MapDepthPointToColorSpace(dsp, depth_buffer[y], &csp);
-
-			if (hr != S_OK || depth_buffer[y] == 0) continue;
-			int cidx = (int)csp.X + (int)csp.Y*color_width;
-			if (csp.X >= 0 && csp.X < color_width && csp.Y >= 0 && csp.Y < color_height) {
+			HRESULT hr = coordinateMapper->MapDepthPointToColorSpace(dsp, depth_buffer[y], &csp);*/
+			Eigen::Vector2d pix, colpt;
+			Eigen::Vector3d campt;
+			pix << y % depth_width, y / depth_width;
+			bool result = rgbd_sensor.Depth2ColorPixel(pix, depth_buffer[y], colpt);
+			if (!result || depth_buffer[y] == 0) continue;
+			int cidx = (int)colpt(0) + (int)colpt(1)*color_width;
+			if (colpt(0) >= 0 && colpt(0) < color_width && colpt(1) >= 0 && colpt(1) < color_height) {
 				depthMask.data[y] = 128;
 				if (humanMask.data[cidx*3] != 255)depthMask.data[y] = 255;		//mask data: 3ch
 			}
@@ -408,8 +384,10 @@ void SegmentationArticulation::PostProcessing() {
 		
 
 		CameraSpacePoint* csps = new CameraSpacePoint[colorWidth*colorHeight];
-		HRESULT hr = coordinateMapper->MapColorFrameToCameraSpace(depth_width*depthHeight, depth_buffer, colorWidth*colorHeight, csps);
+		
 
+//HRESULT hr = coordinateMapper->MapColorFrameToCameraSpace(depth_width*depthHeight, depth_buffer, colorWidth*colorHeight, csps);
+		rgbd_sensor.SetColorFrame2Camera(depth_buffer);
 		Eigen::Vector3d handP; handP << 0, 0, -1;
 		std::vector<Eigen::Vector3d> handPoints = std::vector<Eigen::Vector3d>(21, Eigen::Vector3d::Zero()), handPoints_candidate = std::vector<Eigen::Vector3d>(21, Eigen::Vector3d::Zero());
 		std::vector<double> handScores = std::vector<double>(21, 0), handScores_candidate = std::vector<double>(21, 0);
@@ -435,15 +413,17 @@ void SegmentationArticulation::PostProcessing() {
 					if (databuf[pn * 21 + y * 3] < 0 || databuf[pn * 21 + y * 3] >= colorWidth)continue;
 					if (databuf[pn * 21 + y * 3 + 1] < 0 || databuf[pn * 21 + y * 3 + 1] >= colorHeight)continue;
 					//flip is needed
-					CameraSpacePoint csp = csps[(color_width-(int)databuf[pn * 21 + y * 3])+ ((int)databuf[pn * 21 + y * 3 + 1])*colorWidth];
-					if (csp.Z < 0)continue;
-					hgx += csp.X;
-					hgy += csp.Y;
-					hgz += csp.Z;
+					Eigen::Vector2d pix;pix<< (color_width - (int)databuf[pn * 21 + y * 3]), ((int)databuf[pn * 21 + y * 3 + 1]);
+					Eigen::Vector3d ret;
+					rgbd_sensor.ColorFrame2Camera(pix,ret);
+					if (ret(2) < 0)continue;
+					hgx += ret(0);
+					hgy += ret(1);
+					hgz += ret(2);
 					validcnt++;
 					score += databuf[pn * 21 + y * 3 + 2];
 					Eigen::Vector3d eigen_hand;
-					eigen_hand << csp.X, csp.Y, csp.Z;
+					eigen_hand = ret;
 					handPoints_candidate[y] = eigen_hand;
 					handScores_candidate[y] = databuf[pn * 21 + y * 3 + 2];
 
@@ -480,19 +460,20 @@ void SegmentationArticulation::PostProcessing() {
 		cout << "cvt depth map 2 pc" << endl;
 		for (int y = 0; y < depth_width*depth_height; y++) {
 			if (depthDiff.data[y] == 255 || depthDiff.data[y]==64 || depthDiff.data[y] == 0) {
-				DepthSpacePoint dsp; dsp.X = y % depth_width; dsp.Y = y / depth_width;
-				CameraSpacePoint csp;
-				HRESULT hr = coordinateMapper->MapDepthPointToCameraSpace(dsp, depth_buffer[y], &csp);
-				if (SUCCEEDED(hr)) {
-					if (depthDiff.data[y] != 64) (*depth_pc_all)(dsp.X,dsp.Y) = (pcl::PointXYZ(csp.X, csp.Y, csp.Z));
-					double distFromHand = handP(2) > 0 ? (handP(0) - csp.X)*(handP(0) - csp.X)+ (handP(1) - csp.Y)*(handP(1) - csp.Y) + (handP(2) - csp.Z)*(handP(2) - csp.Z)
+				Eigen::Vector2d pix, colpt;
+				Eigen::Vector3d campt;
+				pix << y % depth_width, y / depth_width;
+				bool result = rgbd_sensor.Depth2CameraSpace(pix, depth_buffer[y], campt);;
+				if (result) {
+					if (depthDiff.data[y] != 64) (*depth_pc_all)(pix(0), pix(1)) = (pcl::PointXYZ(campt(0), campt(1), campt(2)));
+					double distFromHand = handP(2) > 0 ? (handP(0) - campt(0))*(handP(0) - campt(0))+ (handP(1) - campt(1))*(handP(1) - campt(1)) + (handP(2) - campt(2))*(handP(2) - campt(2))
 						: -1;
 
 					if (depthDiff.data[y] == 255 || (distFromHand > 0 && distFromHand<0.2)) {
-						depth_pc->push_back(pcl::PointXYZ(csp.X, csp.Y, csp.Z));
+						depth_pc->push_back(pcl::PointXYZ(campt(0), campt(1), campt(2)));
 					}
 					if (depthDiff.data[y] != 0){
-						depth_pc_compare->push_back(pcl::PointXYZ(csp.X, csp.Y, csp.Z));
+						depth_pc_compare->push_back(pcl::PointXYZ(campt(0), campt(1), campt(2)));
 					}
 				}
 			}
@@ -512,14 +493,13 @@ void SegmentationArticulation::PostProcessing() {
 		int depth_buffer_size = depth_width * depth_height;
 
 		for (int y = 0; y < depth_buffer_size; y++) {
-			DepthSpacePoint dsp; dsp.X = y % depth_width; dsp.Y = y / depth_width;
-			ColorSpacePoint csp;
-			HRESULT hr = coordinateMapper->MapDepthPointToColorSpace(dsp, depth_buffer[y], &csp);
+			Eigen::Vector2d pix, colpt;
+			pix << y % depth_width, y / depth_width;
+			bool result = rgbd_sensor.Depth2ColorPixel(pix,depth_buffer[y],colpt);
+			if (!result || depth_buffer[y] == 0) continue;
+			int cidx = (int)(color_width- colpt(0)-1) + (int)colpt(1)*color_width;
 
-			if (hr != S_OK || depth_buffer[y] == 0) continue;
-			int cidx = (int)(color_width- csp.X-1) + (int)csp.Y*color_width;
-
-			if (csp.X >= 0 && csp.X < color_width && csp.Y >= 0 && csp.Y < color_height) {
+			if (colpt(0) >= 0 && colpt(0) < color_width && colpt(1) >= 0 && colpt(1) < color_height) {
 				depth_image.data[y * 3] = cvtrgb.data[cidx * 3];
 				depth_image.data[y * 3 + 1] = cvtrgb.data[cidx * 3 + 1];
 				depth_image.data[y * 3 + 2] = cvtrgb.data[cidx * 3 + 2];

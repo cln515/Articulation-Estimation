@@ -21,6 +21,7 @@ public:
 	bool getColorImage(cv::Mat& outmat);
 	bool getDepthImage(cv::Mat& outmat);
 	bool Depth2ColorPixel(Eigen::Vector2d pix,uint pixValue,Eigen::Vector2d& ret);	
+	bool Depth2CameraSpace(Eigen::Vector2d pix, uint pixValue, Eigen::Vector3d& ret);
 	void ColorFrame2Camera(Eigen::Vector2d pix, Eigen::Vector3d& ret);
 #if ENABLE_KINECT_V2
 	Microsoft::WRL::ComPtr<IKinectSensor> iKinect;

@@ -101,6 +101,24 @@ bool RGBD_Sensor::Depth2ColorPixel(Eigen::Vector2d pix,uint pixValue,Eigen::Vect
 #endif
 }
 
+
+bool RGBD_Sensor::Depth2CameraSpace(Eigen::Vector2d pix, uint pixValue, Eigen::Vector3d& ret) {
+#if ENABLE_KINECT_V2
+	//	for (int y = 0; y < depth_buffer_size; y++) {
+	DepthSpacePoint dsp; dsp.X = pix(0); dsp.Y = pix(1);
+	CameraSpacePoint csp;
+	HRESULT hr = coordinateMapper->MapDepthPointToCameraSpace(dsp, pixValue, &csp);
+	if (SUCCEEDED(hr)) {
+		ret << csp.X, csp.Y,csp.Z;
+		return true;
+	}
+	else {
+		return false;
+	}
+#endif
+}
+
+
 //bool RGBD_Sensor::ColorFrame2Camera(Eigen::Vector2d pix, uint pixValue, Eigen::Vector2d& ret) {
 //#if ENABLE_KINECT_V2
 //	//	for (int y = 0; y < depth_buffer_size; y++) {
