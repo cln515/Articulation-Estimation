@@ -41,8 +41,8 @@ private:
 
 	int colorBytesPerPixel = 4;
 	
-	ComPtr<IKinectSensor> kinectSensor;
-	ComPtr<ICoordinateMapper> coordinateMapper;
+//	ComPtr<IKinectSensor> kinectSensor;
+//	ComPtr<ICoordinateMapper> coordinateMapper;
 	
 	 op::Wrapper* opWrapper;
 
