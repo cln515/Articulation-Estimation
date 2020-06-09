@@ -222,7 +222,7 @@ bool RGBD_Sensor::Depth2CameraSpace(Eigen::Vector2d pix, uint pixValue, Eigen::V
 	p.v[1] = pix(1);
 	bool result = calib.convert_2d_to_3d(p, pixValue, K4A_CALIBRATION_TYPE_DEPTH,
 		K4A_CALIBRATION_TYPE_COLOR, &targ);
-	ret << targ.v[0], targ.v[1], targ.v[2];
+	ret << targ.v[0]/1000.0, targ.v[1] / 1000.0, targ.v[2] / 1000.0;
 	return result;
 #endif
 }
@@ -255,7 +255,7 @@ void RGBD_Sensor::ColorFrame2Camera(Eigen::Vector2d pix, Eigen::Vector3d& ret){
 	float pixValue = ((unsigned short*)transformedDepthImage.get_buffer())[idx];
 	calib.convert_2d_to_3d(p, pixValue, K4A_CALIBRATION_TYPE_COLOR,
 		K4A_CALIBRATION_TYPE_COLOR, &targ);
-	ret << targ.v[0], targ.v[1], targ.v[2];
+	ret << targ.v[0]/1000.0, targ.v[1] / 1000.0, targ.v[2] / 1000.0;
 #endif
 }
 
