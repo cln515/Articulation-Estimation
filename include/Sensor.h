@@ -48,7 +48,16 @@ public:
 		device.get_capture(&cap, std::chrono::milliseconds(0));
 	}
 	void SetColorFrame2Camera(unsigned short* depth_buffer) {
+		std::cout << "p";
+depthImage = k4a::image::create(K4A_IMAGE_FORMAT_DEPTH16,depth_width,depth_height,depth_width*sizeof(unsigned short));
+std::cout << "q";		const uchar* buf = depthImage.get_buffer();
+		memcpy((void*)buf,depth_buffer,depth_width*depth_height*sizeof(unsigned short));
+		
+		transformedDepthImage = k4a::image::create(K4A_IMAGE_FORMAT_DEPTH16, color_width, color_height, color_width * sizeof(unsigned short));
+
 		transformation.depth_image_to_color_camera(depthImage,&transformedDepthImage);
+		//delete depthImage;
+		std::cout << "r";
 	}
 #endif
 
