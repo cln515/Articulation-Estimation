@@ -236,6 +236,7 @@ void SegmentationArticulation::PostProcessing() {
 	depth_pc_bg->width = depth_width;
 	depth_pc_bg->height = depth_height;
 	depth_pc_bg->resize(depth_width*depth_height);
+	depth_pc_bg->is_dense=false;
 
 	depth_pc_bgcolor->width = depth_width;
 	depth_pc_bgcolor->height = depth_height;
@@ -256,13 +257,17 @@ void SegmentationArticulation::PostProcessing() {
 		(*depth_pc_bg)(pix(0), pix(1)).z = campt(2);
 		std::cout<<"p\r";// For compiler error
 		if (!(result && !isnan(campt(0)) && !isnan(campt(1)) && !isnan(campt(2)))) {
-			(*depth_pc_bg)(pix(0), pix(1)).x = 0;
-			(*depth_pc_bg)(pix(0), pix(1)).y = 0;
-			(*depth_pc_bg)(pix(0), pix(1)).z = 0;
+			(*depth_pc_bg)(pix(0), pix(1)).x = std::numeric_limits<float>::quiet_NaN();
+			(*depth_pc_bg)(pix(0), pix(1)).y = std::numeric_limits<float>::quiet_NaN();
+			(*depth_pc_bg)(pix(0), pix(1)).z = std::numeric_limits<float>::quiet_NaN();
 		}else{
 			result = rgbd_sensor.Depth2ColorPixel(pix,depth_value,colpt);
 			if (!result || depth_bgbuffer[y] == 0) continue;
+#if ENABLE_KINECT_V2
 			int cidx = (int)(color_width - colpt(0) - 1) + (int)colpt(1)*color_width;
+#elif ENABLE_AZURE_KINECT
+			int cidx = (int)(colpt(0)) + (int)colpt(1)*color_width;
+#endif
 			if (colpt(0) >= 0 && colpt(0) < color_width && colpt(1) >= 0 && colpt(1) < color_height) {
 				
 				pcl::PointXYZRGB pt = pcl::PointXYZRGB();
@@ -397,6 +402,8 @@ void SegmentationArticulation::PostProcessing() {
 //HRESULT hr = coordinateMapper->MapColorFrameToCameraSpace(depth_width*depthHeight, depth_buffer, colorWidth*colorHeight, csps);
 #if ENABLE_KINECT_V2
 		rgbd_sensor.SetColorFrame2Camera(depth_buffer);
+#elif ENABLE_AZURE_KINECT
+		rgbd_sensor.SetColorFrame2Camera(depth_buffer);
 #endif
 		Eigen::Vector3d handP; handP << 0, 0, -1;
 		std::vector<Eigen::Vector3d> handPoints = std::vector<Eigen::Vector3d>(21, Eigen::Vector3d::Zero()), handPoints_candidate = std::vector<Eigen::Vector3d>(21, Eigen::Vector3d::Zero());
@@ -423,7 +430,12 @@ void SegmentationArticulation::PostProcessing() {
 					if (databuf[pn * 21 + y * 3] < 0 || databuf[pn * 21 + y * 3] >= colorWidth)continue;
 					if (databuf[pn * 21 + y * 3 + 1] < 0 || databuf[pn * 21 + y * 3 + 1] >= colorHeight)continue;
 					//flip is needed
-					Eigen::Vector2d pix;pix<< (color_width - (int)databuf[pn * 21 + y * 3]), ((int)databuf[pn * 21 + y * 3 + 1]);
+					Eigen::Vector2d pix;
+#if ENABLE_KINECT_V2
+					pix<< (color_width - (int)databuf[pn * 21 + y * 3]), ((int)databuf[pn * 21 + y * 3 + 1]);
+#elif ENABLE_AZURE_KINECT
+					pix << ((int)databuf[pn * 21 + y * 3]), ((int)databuf[pn * 21 + y * 3 + 1]);
+#endif
 					Eigen::Vector3d ret;
 					rgbd_sensor.ColorFrame2Camera(pix,ret);
 					if (ret(2) < 0)continue;
@@ -506,8 +518,11 @@ void SegmentationArticulation::PostProcessing() {
 			pix << y % depth_width, y / depth_width;
 			bool result = rgbd_sensor.Depth2ColorPixel(pix,depth_buffer[y],colpt);
 			if (!result || depth_buffer[y] == 0) continue;
+#if ENABLE_KINECT_V2
 			int cidx = (int)(color_width- colpt(0)-1) + (int)colpt(1)*color_width;
-
+#elif ENABLE_AZURE_KINECT
+			int cidx = (int)(colpt(0)) + (int)colpt(1)*color_width;
+#endif
 			if (colpt(0) >= 0 && colpt(0) < color_width && colpt(1) >= 0 && colpt(1) < color_height) {
 				depth_image.data[y * 3] = cvtrgb.data[cidx * 3];
 				depth_image.data[y * 3 + 1] = cvtrgb.data[cidx * 3 + 1];
@@ -515,8 +530,9 @@ void SegmentationArticulation::PostProcessing() {
 			}
 		}
 
-
+#if ENABLE_KINECT_V2
 		flip(depth_image, depth_image, 1);
+#endif
 		cv::imwrite(outputFolder + "\\depth_colormap" + std::to_string(i) + ".png", depth_image);
 		pc_frames.push_back(depth_pc);
 		pc_full_frames.push_back(depth_pc_all);
