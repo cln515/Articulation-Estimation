@@ -48,7 +48,7 @@ public:
 		device.get_capture(&cap, std::chrono::milliseconds(0));
 	}
 	void SetColorFrame2Camera(unsigned short* depth_buffer) {
-		transformation.depth_image_to_color_camera(, transformedDepthImage);
+		transformation.depth_image_to_color_camera(depthImage,&transformedDepthImage);
 	}
 #endif
 
