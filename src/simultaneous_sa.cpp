@@ -96,7 +96,9 @@ void SegmentationArticulation::StartCaptureMode()
 					depth_image.data[y * 3 + 2] = color_image.data[cidx * 4 + 2];
 				}
 			}
+#if ENABLE_KINECT_V2
 			flip(depth_image, depth_image, 1);
+#endif
 		}
 
 		char key = cv::waitKey(30);
@@ -122,13 +124,17 @@ void SegmentationArticulation::StartCaptureMode()
 
 			cv::cvtColor(color_image, color_image3ch, cv::COLOR_BGRA2BGR);
 			std::string filename = outputFolder + "/background.png";
+#if ENABLE_KINECT_V2
 			cv::flip(color_image3ch, color_image3ch, 1);
+#endif
 			cv::imwrite(filename, color_image3ch);
 			cout << filename << " and "<< filename2 << " is saved" << endl;
 		}
 
 		if (bColor) {
+#if ENABLE_KINECT_V2
 			cv::flip(color_image, color_image, 1);
+#endif
 			if (capturing) {
 				cv::cvtColor(color_image,color_image3ch,cv::COLOR_BGRA2BGR);
 				std::string filename = outputFolder+ "/color_" + std::to_string(frame_counter) + ".png";
