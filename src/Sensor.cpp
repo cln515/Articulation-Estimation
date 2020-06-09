@@ -45,14 +45,14 @@ void RGBD_Sensor::openInitDevice() {
 	}
 	device = k4a::device::open(K4A_DEVICE_DEFAULT);
 	k4a_device_configuration_t config = K4A_DEVICE_CONFIG_INIT_DISABLE_ALL;
-	config.camera_fps = K4A_FRAMES_PER_SECOND_30;
+	config.camera_fps = K4A_FRAMES_PER_SECOND_15;
 	config.depth_mode = K4A_DEPTH_MODE_NFOV_UNBINNED;
 	config.color_format = K4A_IMAGE_FORMAT_COLOR_BGRA32;
-	config.color_resolution = K4A_COLOR_RESOLUTION_720P;
+	config.color_resolution = K4A_COLOR_RESOLUTION_1080P;
 	config.synchronized_images_only = true;
 	device.start_cameras(&config);
 	calib = device.get_calibration(config.depth_mode, config.color_resolution);
-
+	transformation = k4a::transformation(calib);
 	//float* rotcam= calib.color_camera_calibration.extrinsics.rotation;
 	//float* transcam = calib.color_camera_calibration.extrinsics.translation;
 	//Eigen::Matrix3d colorCam_rot;
@@ -86,11 +86,11 @@ void RGBD_Sensor::openInitDevice() {
 		if (device.get_capture(&cap, std::chrono::milliseconds(0)))
 		{
 			{
-				k4a::image depthImage = cap.get_depth_image();
+				k4a::image depthImage_ = cap.get_depth_image();
 				k4a::image colorImage = cap.get_color_image();
-				if (depthImage && colorImage) {
-					depth_width= depthImage.get_width_pixels();
-					depth_height = depthImage.get_height_pixels(); 
+				if (depthImage_ && colorImage) {
+					depth_width= depthImage_.get_width_pixels();
+					depth_height = depthImage_.get_height_pixels(); 
 					color_width = colorImage.get_width_pixels();
 					color_height = colorImage.get_height_pixels();
 
@@ -163,7 +163,7 @@ bool RGBD_Sensor::getDepthImage(cv::Mat& outmat) {
 	return false;
 #elif ENABLE_AZURE_KINECT
 	{
-		k4a::image depthImage = cap.get_depth_image();
+		depthImage = cap.get_depth_image();
 		if (depthImage) {
 			memcpy(outmat.data, depthImage.get_buffer(), depth_width * depth_height * sizeof(unsigned short));
 			return true;
@@ -216,7 +216,14 @@ bool RGBD_Sensor::Depth2CameraSpace(Eigen::Vector2d pix, uint pixValue, Eigen::V
 		return false;
 	}
 #elif ENABLE_AZURE_KINECT
-	return false;
+	k4a_float2_t p;
+	k4a_float3_t targ;
+	p.v[0] = pix(0);
+	p.v[1] = pix(1);
+	bool result = calib.convert_2d_to_3d(p, pixValue, K4A_CALIBRATION_TYPE_DEPTH,
+		K4A_CALIBRATION_TYPE_COLOR, &targ);
+	ret << targ.v[0], targ.v[1], targ.v[2];
+	return result;
 #endif
 }
 
@@ -239,6 +246,16 @@ void RGBD_Sensor::ColorFrame2Camera(Eigen::Vector2d pix, Eigen::Vector3d& ret){
 #if ENABLE_KINECT_V2
 	CameraSpacePoint csp = csps[(int)pix(0) + ((int)pix(1))*color_width];
 	ret << csp.X, csp.Y, csp.Z;
+#elif ENABLE_AZURE_KINECT
+	k4a_float2_t p;
+	k4a_float3_t targ;
+	p.v[0] = pix(0);
+	p.v[1] = pix(1);
+	int idx = (int)pix(0)+(int)pix(1)*color_width;
+	float pixValue = ((unsigned short*)transformedDepthImage.get_buffer())[idx];
+	calib.convert_2d_to_3d(p, pixValue, K4A_CALIBRATION_TYPE_COLOR,
+		K4A_CALIBRATION_TYPE_COLOR, &targ);
+	ret << targ.v[0], targ.v[1], targ.v[2];
 #endif
 }
 

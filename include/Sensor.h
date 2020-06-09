@@ -41,10 +41,15 @@ public:
 	k4a::device device;
 	k4a::capture cap;
 	k4a::calibration calib;
+	k4a::transformation transformation;
+	k4a::image depthImage, transformedDepthImage;
+	
 	void capture(){
 		device.get_capture(&cap, std::chrono::milliseconds(0));
 	}
-
+	void SetColorFrame2Camera(unsigned short* depth_buffer) {
+		transformation.depth_image_to_color_camera(, transformedDepthImage);
+	}
 #endif
 
 
