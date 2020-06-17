@@ -316,9 +316,13 @@ void SegmentationArticulation::PostProcessing() {
 		ss << inputFolder << "\\mask_" << i << ".png";
 		ss2 << inputFolder << "\\depth_" << i << ".dat";
 		cv::Mat humanMask = cv::imread(ss.str());
+		bool bMask = humanMask.cols > 0;
+#if ENABLE_KINECT_V2
 		cv::flip(humanMask, humanMask, 1);
-		cv::erode(humanMask, humanMask, cv::Mat(9, 9, CV_8U, cv::Scalar(1)));
-		cv::Mat depthMask = cv::Mat::zeros(depth_height,depth_width,CV_8UC1);
+#endif
+		if(bMask)cv::erode(humanMask, humanMask, cv::Mat(9, 9, CV_8U, cv::Scalar(1)));
+		
+		cv::Mat depthMask = cv::Mat::zeros(depth_height, depth_width, CV_8UC1);
 		cv::Mat depthDiff = cv::Mat::zeros( depth_height, depth_width, CV_8UC1);
 		std::ifstream ifs(ss2.str(), std::ios::binary);
 		
@@ -337,7 +341,7 @@ void SegmentationArticulation::PostProcessing() {
 			int cidx = (int)colpt(0) + (int)colpt(1)*color_width;
 			if (colpt(0) >= 0 && colpt(0) < color_width && colpt(1) >= 0 && colpt(1) < color_height) {
 				depthMask.data[y] = 128;
-				if (humanMask.data[cidx*3] != 255)depthMask.data[y] = 255;		//mask data: 3ch
+				if (bMask && humanMask.data[cidx*3] != 255)depthMask.data[y] = 255;		//mask data: 3ch
 			}
 		}
 		// 0  : static
@@ -466,6 +470,7 @@ void SegmentationArticulation::PostProcessing() {
 			hand_pos.push_back(handP);
 	
 		}
+		std::cout << "hand: " << handP.transpose() << std::endl;
 		hand_pos_detail.push_back(handPoints);
 		hand_score_detail.push_back(handScores);
 
