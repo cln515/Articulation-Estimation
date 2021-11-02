@@ -30,13 +30,14 @@ Either Kinect SDK V2 or Azure Kinect Sensor SDK is required.
     - ```ArticulationDetection.exe --output_folder <capture_output_folder> --mode 0```
     - push keys for capture background and manimulation scene (push 'b' once and 'c' twice)
         -  c : start and stop recording
-        -  b : capture background
+        -  b : capture background and calibration file
         - esc: quit program
 - Human Masking (Python)
     -  ```$ python masking.py </path/to/Mask_RCNN/> <capture_output_folder> <first_frame(int)> <last_frame(int)>```
 - Processing (C++)
     - ```ArticulationDetection.exe --model_folder </path/to/openpose/models> --input_folder <capture_output_folder> --output_folder <result_output_folder> --first_frame <first_frame(int)> --last_frame <last_frame(int)> --mode 1```
-
+    - (2021/11/02 updated) Data taken by Azure Kinect can be processed without connecting sensor. (Kinect V2 needs to connect to PC for deriving calibration parameters)
+    - (2021/11/02 updated) Sample scenes are available on (https://www.cvl.iis.u-tokyo.ac.jp/~ishikawa/articulation/testdata.zip)
 
 ## Install
 ### Dependency build
