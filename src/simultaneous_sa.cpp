@@ -129,6 +129,11 @@ void SegmentationArticulation::StartCaptureMode()
 #endif
 			cv::imwrite(filename, color_image3ch);
 			cout << filename << " and "<< filename2 << " is saved" << endl;
+
+#if ENABLE_AZURE_KINECT
+			rgbd_sensor.saveSensorData(outputFolder + "/calib.dat");
+#endif
+
 		}
 
 		if (bColor) {
@@ -210,11 +215,24 @@ void SegmentationArticulation::PostProcessing() {
 	viewer->setSize(1280, 1024);  // Visualiser window size
 
 	RGBD_Sensor rgbd_sensor;
-
+	cv::Mat colorbg = cv::imread(inputFolder + "/background.png");
 	int color_width, color_height, depth_width, depth_height;
+#if ENABLE_AZURE_KINECT
+	if (!rgbd_sensor.loadSensorData(inputFolder + "/calib.dat")) {
+		rgbd_sensor.openInitDevice();
+	}
+#elif ENABLE_KINECT_V2
 	rgbd_sensor.openInitDevice();
+
+#endif
+
 	rgbd_sensor.getImageSizes(color_width, color_height,
 		depth_width, depth_height);
+
+	std::cout << "color_width : " << color_width << std::endl;
+	std::cout << "color_height : " << color_height << std::endl;
+	std::cout << "depth_width : " << depth_width << std::endl;
+	std::cout << "depth_height : " << depth_height << std::endl;
 
 	int depth_buffer_size = depth_width * depth_height;
 	bool backgroundSaved = false;
@@ -229,7 +247,7 @@ void SegmentationArticulation::PostProcessing() {
 	unsigned short thresh = 20;
 	//load depth data
 	cv::Mat depthbg=obtainDepthMap(inputFolder+"/background.dat",depth_width,depth_height);
-	cv::Mat colorbg = cv::imread(inputFolder + "/background.png");
+	
 	pcl::PointCloud<pcl::PointXYZ>::Ptr depth_pc_bg(new pcl::PointCloud<pcl::PointXYZ>);
 	pcl::PointCloud<pcl::PointXYZRGB>::Ptr depth_pc_bgcolor(new pcl::PointCloud<pcl::PointXYZRGB>);
 	unsigned short* depth_bgbuffer = (unsigned short*)depthbg.data;

@@ -7,6 +7,7 @@
 #include <windows.h>
 #include <wrl/client.h>
 #include <iostream>
+#include <fstream>
 #include <Eigen/Core>
 
 class RGBD_Sensor {
@@ -59,6 +60,41 @@ std::cout << "q";		const uchar* buf = depthImage.get_buffer();
 		//delete depthImage;
 		std::cout << "r";
 	}
+
+	void saveSensorData(std::string filepath) {
+		std::vector<uchar> rawcalib = device.get_raw_calibration();
+		std::ofstream ofs(filepath, std::ios::binary);
+		ofs.write((char*)&color_width,sizeof(int)); 
+		ofs.write((char*)&color_height, sizeof(int));
+		ofs.write((char*)&depth_width, sizeof(int));
+		ofs.write((char*)&depth_height, sizeof(int));
+		ofs.write((char*)rawcalib.data(), rawcalib.size());
+		ofs.close();
+
+	};
+
+	bool loadSensorData(std::string filepath) {
+		std::ifstream ifs(filepath, std::ios::binary);
+		ifs.seekg(0, std::ios_base::end);
+		int filesize = ifs.tellg();
+		ifs.seekg(0, std::ios_base::beg);
+		if (filesize == 0) {
+			return false;
+		}
+		else {
+			uchar* calibdata = (uchar*)malloc(filesize- sizeof(int)* 4);
+			ifs.read((char*)&color_width, sizeof(int));
+			ifs.read((char*)&color_height, sizeof(int));
+			ifs.read((char*)&depth_width, sizeof(int));
+			ifs.read((char*)&depth_height, sizeof(int));
+			ifs.read((char*)calibdata, filesize- sizeof(int) * 4);
+			calib = k4a::calibration::get_from_raw(calibdata, filesize, K4A_DEPTH_MODE_NFOV_UNBINNED, K4A_COLOR_RESOLUTION_1080P);
+			transformation = k4a::transformation(calib);
+		}
+		return true;
+		
+	};
+
 #endif
 
 
